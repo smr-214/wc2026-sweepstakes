@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WC2026 Draw Card</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #f0f4f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 16px;
+}
+
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, #0d3320 0%, #1a5c35 50%, #0d3320 100%);
+  color: #fff;
+  padding: 24px 20px 18px;
+  text-align: center;
+}
+.header-icon { font-size: 3rem; display: block; margin-bottom: 6px; }
+.header h1 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; }
+.header-sub {
+  font-size: 0.72rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #5dcc85;
+  margin-top: 4px;
+}
+.header-info {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 14px;
+}
+.info-pill {
+  background: rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  color: #cdebd8;
+}
+
+/* PLAYERS GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.player-cell {
+  padding: 14px 12px;
+  border-right: 1px solid #e8f0e8;
+  border-bottom: 1px solid #e8f0e8;
+}
+.player-cell:nth-child(4n) { border-right: none; }
+.player-cell:nth-child(n+5) { border-bottom: none; }
+
+.player-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #00a844;
+}
+.p-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #008040, #00c853);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.p-name { font-weight: 800; font-size: 0.85rem; color: #1a2d1a; }
+.p-avg { font-size: 0.63rem; color: #888; }
+
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 0;
+  font-size: 0.78rem;
+  color: #2a3a2a;
+}
+.t-flag { flex-shrink: 0; line-height: 1; }
+.flag-img { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; display: inline-block; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.1); }
+.t-name { flex: 1; font-weight: 500; }
+.t-rnk {
+  font-size: 0.6rem;
+  color: #999;
+  background: #f0f0f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.t-tier {
+  font-size: 0.58rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.tier1 { background: #fff8cc; color: #aa8800; }
+.tier2 { background: #f0f0f0; color: #666; }
+.tier3 { background: #fdf0e0; color: #8c5a00; }
+.tier4 { background: #e8f0ff; color: #3366cc; }
+.tier5 { background: #f0e8ff; color: #7040aa; }
+.tier6 { background: #f5f5f5; color: #aaa; }
+
+/* FOOTER */
+.footer {
+  background: #0d3320;
+  color: #5dcc85;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+}
+.footer-seed { color: #3a8050; }
+.footer-right { display: flex; gap: 16px; color: #3a8050; }
+.prize-label { color: #5dcc85; font-weight: 700; }
+
+/* LEGEND */
+.legend {
+  background: #f8fcf8;
+  border-top: 1px solid #e0ece0;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.7rem;
+  color: #666;
+}
+.legend strong { color: #333; margin-right: 4px; }
+.leg-t { display: inline-flex; align-items: center; gap: 3px; }
+
+@media print {
+  body { background: white; padding: 0; }
+  .page { box-shadow: none; border-radius: 0; }
+}
+
+@media (max-width: 600px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  .player-cell:nth-child(4n) { border-right: 1px solid #e8f0e8; }
+  .player-cell:nth-child(2n) { border-right: none; }
+  .player-cell:nth-child(n+7) { border-bottom: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="header">
+    <span class="header-icon">🏆</span>
+    <h1>World Cup 2026 Sweepstakes</h1>
+    <p class="header-sub">The Official Draw · Rossler Group</p>
+    <div class="header-info">
+      <span class="info-pill">8 Players</span>
+      <span class="info-pill">48 Teams</span>
+      <span class="info-pill">6 Teams Each</span>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="legend">
+    <strong>Tiers:</strong>
+    <span class="leg-t"><span class="t-tier tier1">T1</span> Elite (Rank 1–8)</span>
+    <span class="leg-t"><span class="t-tier tier2">T2</span> Strong (9–17)</span>
+    <span class="leg-t"><span class="t-tier tier3">T3</span> Solid (18–29)</span>
+    <span class="leg-t"><span class="t-tier tier4">T4</span> Mid (30–42)</span>
+    <span class="leg-t"><span class="t-tier tier5">T5</span> Hopeful (44–61)</span>
+    <span class="leg-t"><span class="t-tier tier6">T6</span> Underdog (62–95)</span>
+  </div>
+
+  <div class="footer">
+    <span>🎲 Balanced random draw · <span class="footer-seed">Seed: WC2026-ROSSLER</span></span>
+    <div class="footer-right">
+      <span><span class="prize-label">Prizes:</span> 🥇🥈🥉 + 🪵🎯👑🎭⚽🥇</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const PLAYERS = [
+  { id: 'mike',   name: 'Mike',    emoji: '🪄' },
+  { id: 'niamh',  name: 'Niamh',   emoji: '😭' },
+  { id: 'chrisb', name: 'Chris B', emoji: '👶' },
+  { id: 'bron',   name: 'Bron',    emoji: '🎤' },
+  { id: 'chrism', name: 'Chris M', emoji: '🔥' },
+  { id: 'yana',   name: 'Yana',    emoji: '✨' },
+  { id: 'bell',   name: 'Bell',    emoji: '🔔' },
+  { id: 'stef',   name: 'Stef',    emoji: '🌊' },
+];
+
+const TEAMS = [
+  { id: 'france',      name: 'France',        flag: '🇫🇷', rank: 1  },
+  { id: 'spain',       name: 'Spain',         flag: '🇪🇸', rank: 2  },
+  { id: 'argentina',   name: 'Argentina',     flag: '🇦🇷', rank: 3  },
+  { id: 'england',     name: 'England',       flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', rank: 4  },
+  { id: 'portugal',    name: 'Portugal',      flag: '🇵🇹', rank: 5  },
+  { id: 'brazil',      name: 'Brazil',        flag: '🇧🇷', rank: 6  },
+  { id: 'netherlands', name: 'Netherlands',   flag: '🇳🇱', rank: 7  },
+  { id: 'morocco',     name: 'Morocco',       flag: '🇲🇦', rank: 8  },
+  { id: 'belgium',     name: 'Belgium',       flag: '🇧🇪', rank: 9  },
+  { id: 'germany',     name: 'Germany',       flag: '🇩🇪', rank: 10 },
+  { id: 'croatia',     name: 'Croatia',       flag: '🇭🇷', rank: 11 },
+  { id: 'colombia',    name: 'Colombia',      flag: '🇨🇴', rank: 13 },
+  { id: 'senegal',     name: 'Senegal',       flag: '🇸🇳', rank: 14 },
+  { id: 'mexico',      name: 'Mexico',        flag: '🇲🇽', rank: 15 },
+  { id: 'usa',         name: 'USA',           flag: '🇺🇸', rank: 16 },
+  { id: 'uruguay',     name: 'Uruguay',       flag: '🇺🇾', rank: 17 },
+  { id: 'japan',       name: 'Japan',         flag: '🇯🇵', rank: 18 },
+  { id: 'switzerland', name: 'Switzerland',   flag: '🇨🇭', rank: 19 },
+  { id: 'iran',        name: 'Iran',          flag: '🇮🇷', rank: 21 },
+  { id: 'austria',     name: 'Austria',       flag: '🇦🇹', rank: 23 },
+  { id: 'ecuador',     name: 'Ecuador',       flag: '🇪🇨', rank: 24 },
+  { id: 'southkorea',  name: 'South Korea',   flag: '🇰🇷', rank: 25 },
+  { id: 'australia',   name: 'Australia',     flag: '🇦🇺', rank: 26 },
+  { id: 'egypt',       name: 'Egypt',         flag: '🇪🇬', rank: 29 },
+  { id: 'canada',      name: 'Canada',        flag: '🇨🇦', rank: 30 },
+  { id: 'ivorycoast',  name: 'Ivory Coast',   flag: '🇨🇮', rank: 33 },
+  { id: 'qatar',       name: 'Qatar',         flag: '🇶🇦', rank: 35 },
+  { id: 'algeria',     name: 'Algeria',       flag: '🇩🇿', rank: 36 },
+  { id: 'sweden',      name: 'Sweden',        flag: '🇸🇪', rank: 39 },
+  { id: 'tunisia',     name: 'Tunisia',       flag: '🇹🇳', rank: 40 },
+  { id: 'czechia',     name: 'Czechia',       flag: '🇨🇿', rank: 41 },
+  { id: 'turkey',      name: 'Türkiye',       flag: '🇹🇷', rank: 42 },
+  { id: 'norway',      name: 'Norway',        flag: '🇳🇴', rank: 44 },
+  { id: 'scotland',    name: 'Scotland',      flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', rank: 47 },
+  { id: 'drcongo',     name: 'DR Congo',      flag: '🇨🇩', rank: 51 },
+  { id: 'bosnia',      name: 'Bosnia & H.',   flag: '🇧🇦', rank: 52 },
+  { id: 'panama',      name: 'Panama',        flag: '🇵🇦', rank: 53 },
+  { id: 'saudi',       name: 'Saudi Arabia',  flag: '🇸🇦', rank: 57 },
+  { id: 'southafrica', name: 'South Africa',  flag: '🇿🇦', rank: 60 },
+  { id: 'iraq',        name: 'Iraq',          flag: '🇮🇶', rank: 61 },
+  { id: 'uzbekistan',  name: 'Uzbekistan',    flag: '🇺🇿', rank: 62 },
+  { id: 'paraguay',    name: 'Paraguay',      flag: '🇵🇾', rank: 64 },
+  { id: 'ghana',       name: 'Ghana',         flag: '🇬🇭', rank: 65 },
+  { id: 'jordan',      name: 'Jordan',        flag: '🇯🇴', rank: 68 },
+  { id: 'capeverde',   name: 'Cape Verde',    flag: '🇨🇻', rank: 70 },
+  { id: 'curacao',     name: 'Curaçao',       flag: '🇨🇼', rank: 81 },
+  { id: 'haiti',       name: 'Haiti',         flag: '🇭🇹', rank: 83 },
+  { id: 'newzealand',  name: 'New Zealand',   flag: '🇳🇿', rank: 95 },
+];
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a += 0x6D2B79F5; a >>>= 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashStr(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+  return h;
+}
+function seededShuffle(arr, rng) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const FLAG_ISOS = {
+  france:'fr', spain:'es', argentina:'ar', england:'gb-eng', portugal:'pt',
+  brazil:'br', netherlands:'nl', morocco:'ma', belgium:'be', germany:'de',
+  croatia:'hr', colombia:'co', senegal:'sn', mexico:'mx', usa:'us',
+  uruguay:'uy', japan:'jp', switzerland:'ch', iran:'ir', austria:'at',
+  ecuador:'ec', southkorea:'kr', australia:'au', egypt:'eg', canada:'ca',
+  ivorycoast:'ci', qatar:'qa', algeria:'dz', sweden:'se', tunisia:'tn',
+  czechia:'cz', turkey:'tr', norway:'no', scotland:'gb-sct', drcongo:'cd',
+  bosnia:'ba', panama:'pa', saudi:'sa', southafrica:'za', iraq:'iq',
+  uzbekistan:'uz', paraguay:'py', ghana:'gh', jordan:'jo', capeverde:'cv',
+  curacao:'cw', haiti:'ht', newzealand:'nz',
+};
+const flag = t => `<img class="flag-img" src="https://flagcdn.com/20x15/${FLAG_ISOS[t.id]}.png" alt="${t.name}">`;
+
+function computeDraw() {
+  const rng = mulberry32(hashStr('WC2026-ROSSLER-SWEEPSTAKES'));
+  const sorted = [...TEAMS].sort((a, b) => a.rank - b.rank);
+  const players = PLAYERS.map(p => ({ ...p, teams: [] }));
+  for (let tier = 0; tier < 6; tier++) {
+    const slice = sorted.slice(tier * 8, tier * 8 + 8);
+    const shuffled = seededShuffle(slice, rng);
+    shuffled.forEach((team, pi) => players[pi].teams.push({ ...team, tier: tier + 1 }));
+  }
+  return players;
+}
+
+const DRAW = computeDraw();
+
+const grid = document.getElementById('grid');
+DRAW.forEach(p => {
+  const avg = Math.round(p.teams.reduce((s, t) => s + t.rank, 0) / p.teams.length);
+  const rows = [...p.teams].sort((a, b) => a.rank - b.rank).map(t => `
+    <div class="team-item">
+      <span class="t-flag">${flag(t)}</span>
+      <span class="t-name">${t.name}</span>
+      <span class="t-rnk">#${t.rank}</span>
+      <span class="t-tier tier${t.tier}">T${t.tier}</span>
+    </div>`).join('');
+
+  grid.innerHTML += `
+    <div class="player-cell">
+      <div class="player-header">
+        <div class="p-avatar">${p.emoji}</div>
+        <div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-avg">Avg rank #${avg}</div>
+        </div>
+      </div>
+      ${rows}
+    </div>`;
+});
+</script>
+</body>
+</html>
