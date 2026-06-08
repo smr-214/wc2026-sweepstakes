@@ -378,13 +378,11 @@ body {
 <nav class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="standings">🏆 Standings</button>
   <button class="tab-btn" data-tab="draw">🎲 The Draw</button>
-  <button class="tab-btn" data-tab="admin">⚙️ Results</button>
   <button class="tab-btn" data-tab="rules">📜 Rules</button>
 </nav>
 
 <div id="standings" class="tab-pane active"></div>
 <div id="draw" class="tab-pane"></div>
-<div id="admin" class="tab-pane"></div>
 <div id="rules" class="tab-pane"></div>
 
 <script>
@@ -861,100 +859,6 @@ function renderDraw() {
 }
 
 // ═══════════════════════════════════════════════
-// RENDER: ADMIN
-// ═══════════════════════════════════════════════
-
-function renderAdmin() {
-  const el = document.getElementById('admin');
-  const gb = S.goldenBoot;
-
-  // Group matches
-  const groupBlocks = Object.entries(GROUPS).map(([grp, tids]) => {
-    const teams = tids.map(id => teamById(id));
-    const matchRows = GROUP_MATCHES.filter(m => m.group === grp).map(m => {
-      const ht = teamById(m.home), at = teamById(m.away);
-      const r = parsedResult(m.id);
-      const raw = S.matches[m.id] || {};
-      const done = r !== null;
-
-      return `<div class="match-row" id="mr-${m.id}">
-        <div class="match-teams">
-          ${flag(ht)} ${ht.name} <span class="vs-sep">vs</span> ${flag(at)} ${at.name}
-        </div>
-        ${done
-          ? `<span class="score-result">${r.hg} – ${r.ag}</span>
-             <button class="btn btn-clear" onclick="clearMatch('${m.id}')">✕ Clear</button>`
-          : `<div class="score-wrap">
-               <input class="score-in" type="number" min="0" max="20" id="hg-${m.id}" placeholder="-" value="${raw.hg ?? ''}">
-               <span class="score-dash">–</span>
-               <input class="score-in" type="number" min="0" max="20" id="ag-${m.id}" placeholder="-" value="${raw.ag ?? ''}">
-             </div>
-             <button class="btn btn-save" onclick="saveMatch('${m.id}')">Save</button>`
-        }
-      </div>`;
-    }).join('');
-
-    return `<div class="group-block">
-      <div class="group-hdr">
-        <span class="g-badge">${grp}</span>
-        ${teams.map(t => t.flag + ' ' + t.name).join(' · ')}
-      </div>
-      ${matchRows}
-    </div>`;
-  }).join('');
-
-  // Team stats table
-  const statRows = TEAMS.map(t => {
-    const s = S.teamStats[t.id] || {};
-    return `<tr>
-      <td>${flag(t)} ${t.name}</td>
-      <td><input class="stats-in" type="number" min="0" value="${s.rc || 0}"
-          onchange="saveStat('${t.id}','rc',this.value)"></td>
-      <td><input class="stats-in" type="number" min="0" value="${s.pens || 0}"
-          onchange="saveStat('${t.id}','pens',this.value)"></td>
-    </tr>`;
-  }).join('');
-
-  const gbOptions = TEAMS.map(t =>
-    `<option value="${t.id}" ${gb.teamId === t.id ? 'selected' : ''}>${t.name}</option>`
-  ).join('');
-
-  el.innerHTML = `
-    <div class="info-box">
-      ⚙️ <strong>Admin:</strong> Enter scores after each match. Data is saved to this browser's local storage.
-      Share the updated <em>index.html</em> or screenshot the Standings tab for WhatsApp updates.
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title"><span>🥇 Golden Boot — Current Top Scorer</span></div>
-      <div class="gb-row">
-        <select class="gb-select" id="gb-team">
-          <option value="">Team of top scorer…</option>${gbOptions}
-        </select>
-        <input class="gb-text" type="text" id="gb-scorer" placeholder="Scorer name" value="${gb.scorer || ''}">
-        <input class="gb-num" type="number" id="gb-goals" min="0" placeholder="Goals" value="${gb.goals || ''}">
-        <button class="btn btn-save" onclick="saveGoldenBoot()">Update</button>
-      </div>
-    </div>
-
-    <div class="section-title" style="margin-top:4px"><span>📋 Group Stage Scores</span></div>
-    ${groupBlocks}
-
-    <div class="section-title" style="margin-top:24px"><span>📊 Team Stats</span></div>
-    <div class="card">
-      <table class="stats-table">
-        <thead><tr><th>Team</th><th>🟥 Red Cards</th><th>⚽ Pen Goals</th></tr></thead>
-        <tbody>${statRows}</tbody>
-      </table>
-    </div>
-
-    <div style="text-align:center;margin-top:20px">
-      <button class="btn-danger" onclick="resetAll()">⚠️ Reset All Data</button>
-    </div>
-  `;
-}
-
-// ═══════════════════════════════════════════════
 // RENDER: RULES
 // ═══════════════════════════════════════════════
 
@@ -1024,40 +928,6 @@ function renderRules() {
 // ACTIONS
 // ═══════════════════════════════════════════════
 
-function saveMatch(mid) {
-  const hg = document.getElementById(`hg-${mid}`)?.value ?? '';
-  const ag = document.getElementById(`ag-${mid}`)?.value ?? '';
-  if (hg === '' || ag === '') return;
-  S.matches[mid] = { hg, ag };
-  saveState();
-  renderAdmin();
-  renderStandings();
-}
-
-function clearMatch(mid) {
-  delete S.matches[mid];
-  saveState();
-  renderAdmin();
-  renderStandings();
-}
-
-function saveStat(teamId, field, val) {
-  if (!S.teamStats[teamId]) S.teamStats[teamId] = {};
-  S.teamStats[teamId][field] = parseInt(val) || 0;
-  saveState();
-  renderStandings();
-}
-
-function saveGoldenBoot() {
-  S.goldenBoot = {
-    teamId: document.getElementById('gb-team').value,
-    scorer: document.getElementById('gb-scorer').value,
-    goals: parseInt(document.getElementById('gb-goals').value) || 0,
-  };
-  saveState();
-  renderStandings();
-}
-
 function shareStandings() {
   const url = getShareUrl();
   if (navigator.share) {
@@ -1069,14 +939,6 @@ function shareStandings() {
   }
 }
 
-function resetAll() {
-  if (!confirm('Reset ALL results? This cannot be undone.')) return;
-  S = defaultState();
-  saveState();
-  renderAdmin();
-  renderStandings();
-}
-
 // ═══════════════════════════════════════════════
 // TAB ROUTING
 // ═══════════════════════════════════════════════
@@ -1086,7 +948,6 @@ let activeTab = 'standings';
 const renderers = {
   standings: renderStandings,
   draw: renderDraw,
-  admin: renderAdmin,
   rules: renderRules,
 };
 
