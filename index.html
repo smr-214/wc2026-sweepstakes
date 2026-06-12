@@ -206,6 +206,31 @@ table.lb { width: 100%; border-collapse: collapse; }
 .m-meta { width: 100%; color: var(--muted); font-size: 0.66rem; text-align: center; }
 .owner-tag { color: var(--muted); font-size: 0.64rem; }
 
+/* ── BRACKET ── */
+.b-round { margin-bottom: 20px; }
+.b-round-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.b-col-h {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+.b-match {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.76rem;
+}
+.b-side { display: flex; align-items: center; gap: 5px; padding: 2px 0; color: var(--muted); }
+.b-side.winner { color: var(--text); font-weight: 700; }
+.b-side .b-score { margin-left: auto; font-weight: 700; }
+.b-side.winner .b-score { color: var(--green); }
+.b-meta { font-size: 0.6rem; color: var(--muted); text-align: center; margin-top: 2px; }
+.b-final .b-match { border-color: rgba(255,215,0,0.4); }
+
 /* ── AWARDS ── */
 .award-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
 .award-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
@@ -228,7 +253,7 @@ table.lb { width: 100%; border-collapse: collapse; }
 @media (max-width: 640px) {
   .tabs { flex-wrap: wrap; }
   .tab-btn {
-    flex: 1 1 25%;
+    flex: 1 1 33.33%;
     min-width: 0;
     white-space: normal;
     font-size: 0.7rem;
@@ -251,12 +276,14 @@ table.lb { width: 100%; border-collapse: collapse; }
   <button class="tab-btn active" data-tab="leaderboard">🏆 Leaderboard</button>
   <button class="tab-btn" data-tab="draw">👥 The Draw</button>
   <button class="tab-btn" data-tab="matches">⚽ Fixtures</button>
+  <button class="tab-btn" data-tab="bracket">🪜 Knockout Stage</button>
   <button class="tab-btn" data-tab="rules">📜 Rules</button>
 </div>
 
 <div class="tab-pane active" id="pane-leaderboard"><div class="loading">Loading…</div></div>
 <div class="tab-pane" id="pane-draw"></div>
 <div class="tab-pane" id="pane-matches"></div>
+<div class="tab-pane" id="pane-bracket"></div>
 <div class="tab-pane" id="pane-rules"></div>
 
 <script>
@@ -410,19 +437,21 @@ function matchWinner(m) {
 function computeTeamStats() {
   const s = {};
   TEAMS.forEach(t => {
-    s[t.id] = { pts: 0, gf: 0, ga: 0, played: 0, zeroDraws: 0, eliminated: false, elimDate: null };
+    s[t.id] = { pts: 0, gf: 0, ga: 0, played: 0, eliminated: false, elimDate: null,
+                gPlayed: 0, gGF: 0, gGA: 0, pens: 0 };
   });
   const finished = RESULTS.matches.filter(m => m.status === 'FINISHED' && m.home && m.away);
 
   for (const m of finished) {
     const w = matchWinner(m);
-    for (const [me, them, gf, ga] of [[m.home, m.away, m.hs, m.as], [m.away, m.home, m.as, m.hs]]) {
+    for (const [me, them, gf, ga, myPens] of [[m.home, m.away, m.hs, m.as, m.penHome], [m.away, m.home, m.as, m.hs, m.penAway]]) {
       const st = s[me];
       if (!st) continue;
       st.played++; st.gf += gf; st.ga += ga;
       st.pts += gf * PTS.goal;
-      if (gf === 0 && ga === 0) st.zeroDraws++;
+      if (m.duration === 'PENALTY_SHOOTOUT') st.pens += myPens || 0;
       if (m.stage === 'group') {
+        st.gPlayed++; st.gGF += gf; st.gGA += ga;
         if (w === me) st.pts += PTS.groupWin;
         else if (w === null) st.pts += PTS.groupDraw;
       } else {
@@ -476,41 +505,62 @@ const fmtD = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', mont
 const fmtDT = d => `${fmtD(d)}, ${new Date(d).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
 
 function renderAwards(rows, teamStats) {
-  const playerAgg = fn => rows.map(p => ({ p, v: p.teams.reduce((s, t) => s + fn(t, teamStats[t.id]), 0) }));
-  // everyone level on the top value is shown — ties share the award
-  const best = (agg, min = 1) => {
-    const top = Math.max(0, ...agg.map(a => a.v));
-    return top >= min ? agg.filter(a => a.v === top) : [];
+  const ownerOf = id => DRAW.players.find(p => p.teams.some(t => t.id === id));
+
+  // best team(s) by metric — ties share the prize; lowest=true for Wooden Spoon
+  const bestTeams = (metric, { min = 1, lowest = false, stat }) => {
+    const scored = TEAMS
+      .map(t => ({ t, v: metric(teamStats[t.id], t) }))
+      .filter(x => x.v !== null);
+    if (!scored.length) return [];
+    const top = lowest ? Math.min(...scored.map(x => x.v)) : Math.max(...scored.map(x => x.v));
+    if (!lowest && top < min) return [];
+    return scored.filter(x => x.v === top).map(x => ({ team: x.t, owner: ownerOf(x.t.id), stat: stat(x.v) }));
   };
-  const holder = (list, unit) => list.length
-    ? `${list.map(x => `<div class="award-holder">${pflag(x.p)} ${esc(x.p.name)}</div>`).join('')}
-       <div class="award-detail">${list[0].v} ${list[0].v === 1 ? unit.replace(/s$/, '') : unit}${list.length > 1 ? ' each — currently tied' : ''}</div>`
-    : '<div class="award-detail">No contender yet</div>';
 
-  const snooze = best(playerAgg((t, s) => s.zeroDraws));
-  const red = best(playerAgg((t) => (EXTRAS.redCards || {})[t.id] || 0));
-  const hasRed = Object.keys(EXTRAS.redCards || {}).length > 0;
+  const holders = list => list.length
+    ? list.map(x => `
+        <div class="award-holder">${x.owner ? pflag(x.owner) + ' ' + esc(x.owner.name) : '?'}</div>
+        <div class="award-detail">${flag(x.team.id)} ${esc(x.team.name)} · ${esc(x.stat)}</div>`).join('')
+      + (list.length > 1 ? '<div class="award-detail">currently tied</div>' : '')
+    : '<div class="award-detail">TBD</div>';
 
-  let bath = [], bathWhen = null;
-  for (const p of rows) {
-    if (p.teams.every(t => teamStats[t.id].eliminated)) {
-      const when = p.teams.map(t => teamStats[t.id].elimDate || '').sort().pop();
-      if (!bathWhen || when < bathWhen) { bathWhen = when; bath = [p]; }
-      else if (when === bathWhen) bath.push(p);
-    }
+  const woodenSpoon = bestTeams((s) => s.gPlayed > 0 ? s.gGF - s.gGA : null, { lowest: true, stat: v => `GD ${v > 0 ? '+' : ''}${v}` });
+  const goalMachine = bestTeams((s) => s.gGF, { min: 1, stat: v => `${v} goals` });
+  const dramaQueen  = bestTeams((s, t) => (EXTRAS.redCards || {})[t.id] || 0, { min: 1, stat: v => `${v} 🟥` });
+  const penaltyHero = bestTeams((s) => s.pens, { min: 1, stat: v => `${v} pens` });
+
+  // Upset King — biggest single-match win over a higher-ranked team
+  let upsets = [], upDiff = 0;
+  for (const m of RESULTS.matches.filter(m => m.status === 'FINISHED' && m.home && m.away)) {
+    const w = matchWinner(m);
+    if (!w) continue;
+    const loser = w === m.home ? m.away : m.home;
+    const diff = (teamById[w] || {}).rank - (teamById[loser] || {}).rank;
+    if (diff > upDiff) { upDiff = diff; upsets = [{ team: teamById[w], owner: ownerOf(w), stat: `beat ${tname(loser)} (+${diff} ranks)` }]; }
+    else if (diff === upDiff && diff > 0 && !upsets.some(u => u.team.id === w)) upsets.push({ team: teamById[w], owner: ownerOf(w), stat: `beat ${tname(loser)} (+${diff} ranks)` });
   }
+
+  // Golden Boot — top scorer's team, set manually in data/extras.json as
+  // "goldenBoot": { "teamId": "...", "scorer": "...", "goals": n }
+  const gb = EXTRAS.goldenBoot && EXTRAS.goldenBoot.teamId && teamById[EXTRAS.goldenBoot.teamId]
+    ? [{ team: teamById[EXTRAS.goldenBoot.teamId], owner: ownerOf(EXTRAS.goldenBoot.teamId), stat: `${EXTRAS.goldenBoot.scorer} ${EXTRAS.goldenBoot.goals}⚽` }]
+    : [];
 
   const card = (emoji, name, desc, body) => `
     <div class="award-card"><div class="award-emoji">${emoji}</div>
     <div class="award-name">${name}</div><div class="award-desc">${desc}</div>${body}</div>`;
 
   return `
-    <div class="section-title" style="margin-bottom:6px">🎖️ Special Awards</div>
-    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:14px">Live holders — final winners decided after the Final. Everyone's in with a shout, football knowledge optional.</p>
+    <div class="section-title" style="margin-bottom:6px">🎖️ Special Prizes</div>
+    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:14px">Live holders — winners decided after the Final. All six teams count here, even the ones outside your top scorers.</p>
     <div class="award-grid" style="margin-bottom:22px">
-      ${card('😴', 'Snoozefest', 'Most 0-0 draws sat through', holder(snooze, '0-0 classics'))}
-      ${card('🛁', 'Early Bath', 'First to have all six teams knocked out', bath.length ? `${bath.map(p => `<div class="award-holder">${pflag(p)} ${esc(p.name)}</div>`).join('')}${bath.length > 1 ? '<div class="award-detail">knocked out together — tied</div>' : ''}` : '<div class="award-detail">Everyone still alive</div>')}
-      ${card('🟥', 'Red Mist', 'Most red cards collected by your teams', hasRed ? holder(red, 'red cards') : '<div class="award-detail">Tracking starts when card data is in</div>')}
+      ${card('🥇', 'Golden Boot', 'Owns the tournament\'s top goal scorer', holders(gb))}
+      ${card('🪵', 'Wooden Spoon', 'Worst group-stage goal difference', holders(woodenSpoon))}
+      ${card('🎯', 'Goal Machine', 'Most goals scored in the group stage', holders(goalMachine))}
+      ${card('👑', 'Upset King', 'Biggest upset by ranking gap in one match', holders(upsets))}
+      ${card('🎭', 'Drama Queen', 'Most red cards across all their teams', holders(dramaQueen))}
+      ${card('⚽', 'Penalty Hero', 'Most shoot-out penalties scored', holders(penaltyHero))}
     </div>`;
 }
 
@@ -618,6 +668,47 @@ function renderMatches() {
   pane.innerHTML = html;
 }
 
+function renderBracket() {
+  const pane = $('pane-bracket');
+  const byStage = s => RESULTS.matches
+    .filter(m => m.stage === s)
+    .sort((a, b) => (a.utcDate || '').localeCompare(b.utcDate || ''));
+
+  const stages = [['r32', 'Round of 32'], ['r16', 'Round of 16'], ['qf', 'Quarter-finals'], ['sf', 'Semi-finals'], ['final', 'Final']];
+  if (!stages.some(([s]) => byStage(s).length)) {
+    pane.innerHTML = '<div class="loading">The knockout ladder appears here once fixtures are synced.</div>';
+    return;
+  }
+
+  const sideRow = (m, id) => {
+    const isW = m.status === 'FINISHED' && matchWinner(m) === id;
+    const score = id === m.home ? m.hs : m.as;
+    const pens = m.penHome != null ? (id === m.home ? m.penHome : m.penAway) : null;
+    return `<div class="b-side ${isW ? 'winner' : ''}">
+      ${id ? flag(id) : '·'} ${id ? esc(tname(id)) : 'TBD'}
+      <span class="b-score">${score != null ? score + (pens != null ? ` (${pens})` : '') : ''}</span>
+    </div>`;
+  };
+  const cell = m => `
+    <div class="b-match">
+      ${sideRow(m, m.home)}
+      ${sideRow(m, m.away)}
+      ${m.status !== 'FINISHED' && m.utcDate ? `<div class="b-meta">${fmtD(m.utcDate)}</div>` : ''}
+    </div>`;
+
+  let html = '';
+  for (const [stage, label] of [...stages, ['third', 'Third-place play-off']]) {
+    const ms = byStage(stage);
+    if (!ms.length) continue;
+    html += `<div class="b-round ${stage === 'final' ? 'b-final' : ''}">
+      <div class="b-col-h">${label}</div>
+      <div class="b-round-grid">${ms.map(cell).join('')}</div>
+    </div>`;
+  }
+  html += '<p style="color:var(--muted);font-size:0.7rem;margin-top:4px">Numbers in brackets are penalty shoot-out scores.</p>';
+  pane.innerHTML = html;
+}
+
 function renderRules() {
   $('pane-rules').innerHTML = `
     <div class="card rules">
@@ -667,6 +758,7 @@ function renderAll() {
   renderLeaderboard(rows, stats);
   renderDraw();
   renderMatches();
+  renderBracket();
   renderRules();
   const anyPlayed = RESULTS.matches.some(m => m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED');
   if (anyPlayed) {
