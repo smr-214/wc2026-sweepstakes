@@ -1,0 +1,11 @@
+{
+  "_comment": "Red cards per team id, maintained by scripts/fetch-cards.mjs.",
+  "redCards": {
+    "southafrica": 2,
+    "mexico": 1
+  },
+  "tallied": [
+    "espn-760414",
+    "espn-760415"
+  ]
+}

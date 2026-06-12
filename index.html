@@ -551,43 +551,64 @@ const DRAW = computeDraw();
 // STATE
 // ═══════════════════════════════════════════════
 
-const SK = 'wc2026-rossler-v1';
-
 function defaultState() {
   return {
     matches: {},       // matchId → { hg, ag }
     teamStats: {},     // teamId → { rc: 0, pens: 0 }
     qualified: [],     // teamIds that qualified from group
-    knockout: {},      // matchId → { winner }
     goldenBoot: { teamId: '', scorer: '', goals: 0 },
   };
 }
 
-function loadState() {
-  // URL hash takes priority — lets Mike share a live standings link
-  try {
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-      const decoded = JSON.parse(atob(hash));
-      if (decoded && decoded.matches) return { ...defaultState(), ...decoded };
-    }
-  } catch {}
-  try { return { ...defaultState(), ...JSON.parse(localStorage.getItem(SK) || '{}') }; }
-  catch { return defaultState(); }
-}
-
-function saveState() {
-  try { localStorage.setItem(SK, JSON.stringify(S)); } catch {}
-  // Keep URL hash in sync so Mike can copy+share at any time
-  const encoded = btoa(JSON.stringify(S));
-  history.replaceState(null, '', '#' + encoded);
-}
-
 function getShareUrl() {
-  return window.location.href.split('#')[0] + '#' + btoa(JSON.stringify(S));
+  return window.location.href.split('#')[0];
 }
 
-let S = loadState();
+let S = defaultState();
+// Live data — written by GitHub Actions (results every 15 min, cards 3x daily)
+let RESULTS = { updated: null, matches: [] };
+let EXTRAS = { redCards: {} };
+
+function matchWinner(m) {
+  if (m.winner === 'HOME_TEAM') return m.home;
+  if (m.winner === 'AWAY_TEAM') return m.away;
+  if (m.winner === 'DRAW') return null;
+  if (m.hs == null || m.as == null) return null;
+  if (m.hs > m.as) return m.home;
+  if (m.as > m.hs) return m.away;
+  if (m.penHome != null && m.penAway != null) return m.penHome > m.penAway ? m.home : m.away;
+  return null;
+}
+
+// Rebuild S from the synced results so all existing renderers keep working
+function applyResults() {
+  S = defaultState();
+
+  // group results → our synthesized match ids, matched by team pair
+  const byPair = {};
+  GROUP_MATCHES.forEach(m => { byPair[[m.home, m.away].sort().join('|')] = m; });
+  for (const r of RESULTS.matches) {
+    if (r.stage !== 'group' || r.status !== 'FINISHED' || !r.home || !r.away) continue;
+    const gm = byPair[[r.home, r.away].sort().join('|')];
+    if (gm) S.matches[gm.id] = gm.home === r.home ? { hg: r.hs, ag: r.as } : { hg: r.as, ag: r.hs };
+  }
+
+  // qualification bonus once the round-of-32 line-up is known
+  const ko = new Set();
+  RESULTS.matches.forEach(m => {
+    if (m.stage !== 'group') { if (m.home) ko.add(m.home); if (m.away) ko.add(m.away); }
+  });
+  const r32Known = RESULTS.matches.filter(m => m.stage === 'r32' && m.home && m.away).length >= 16;
+  S.qualified = r32Known ? [...ko] : [];
+
+  // red cards (cards bot) + shoot-out penalties scored
+  TEAMS.forEach(t => { S.teamStats[t.id] = { rc: (EXTRAS.redCards || {})[t.id] || 0, pens: 0 }; });
+  RESULTS.matches.forEach(m => {
+    if (m.status !== 'FINISHED' || m.duration !== 'PENALTY_SHOOTOUT') return;
+    if (m.home && S.teamStats[m.home]) S.teamStats[m.home].pens += m.penHome || 0;
+    if (m.away && S.teamStats[m.away]) S.teamStats[m.away].pens += m.penAway || 0;
+  });
+}
 
 // ═══════════════════════════════════════════════
 // HELPERS
@@ -635,12 +656,13 @@ function computeTeamPoints() {
   // Qualification bonuses
   S.qualified.forEach(id => { if (pts[id] !== undefined) pts[id] += PTS.qualify; });
 
-  // Knockout bonuses
-  const stagePts = { r32: PTS.r32, r16: PTS.r16, qf: PTS.qf, sf: PTS.sf, f: PTS.champion };
-  Object.entries(S.knockout || {}).forEach(([mid, { winner }]) => {
-    if (!winner) return;
-    const stage = mid.replace(/\d+$/, '');
-    if (stagePts[stage]) pts[winner] = (pts[winner] || 0) + stagePts[stage];
+  // Knockout bonuses straight from the synced results (third-place
+  // play-off intentionally scores nothing, per the published rules)
+  const stagePts = { r32: PTS.r32, r16: PTS.r16, qf: PTS.qf, sf: PTS.sf, final: PTS.champion };
+  RESULTS.matches.forEach(m => {
+    if (m.status !== 'FINISHED' || !stagePts[m.stage]) return;
+    const w = matchWinner(m);
+    if (w && pts[w] !== undefined) pts[w] += stagePts[m.stage];
   });
 
   return pts;
@@ -757,7 +779,7 @@ function renderStandings() {
     'Goal Machine': 'Most goals scored in the group stage',
     'Upset King':   'Biggest upset by ranking gap in one match',
     'Drama Queen':  'Most red cards across all their teams',
-    'Penalty Hero': 'Most penalties scored across all their teams',
+    'Penalty Hero': 'Most shoot-out penalties scored across all their teams',
   };
 
   const prizeTile = (icon, label, data) => {
@@ -788,6 +810,9 @@ function renderStandings() {
         <button class="share-btn" onclick="shareStandings()" title="Copy link to share current standings">📤 Share</button>
       </div>
     </div>
+    <p style="color:var(--muted);font-size:0.7rem;margin:-8px 0 12px">${RESULTS.updated
+      ? 'Results as of ' + new Date(RESULTS.updated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + new Date(RESULTS.updated).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+      : 'Awaiting first results sync'}</p>
     <div class="card">
       <div class="lb-wrap">
         <table class="lb-table">
@@ -908,7 +933,7 @@ function renderRules() {
         <li>🎯 <strong>Goal Machine</strong> — player who owns the team that scored the most goals in the group stage</li>
         <li>👑 <strong>Upset King</strong> — player whose team pulled off the biggest single-match upset (beat the highest-ranked opponent, by ranking gap)</li>
         <li>🎭 <strong>Drama Queen</strong> — player whose teams collected the most red cards across the whole tournament</li>
-        <li>⚽ <strong>Penalty Hero</strong> — player whose teams scored the most penalties across the whole tournament</li>
+        <li>⚽ <strong>Penalty Hero</strong> — player whose teams scored the most shoot-out penalties across the whole tournament</li>
       </ul>
     </div>
 
@@ -917,7 +942,7 @@ function renderRules() {
       <ul class="rule-list">
         <li>The draw is final — no swaps or trades</li>
         <li>Special prizes are independent — you can win a main prize AND a special prize</li>
-        <li>Mike updates results on the leaderboard after each matchday</li>
+        <li>Results sync automatically from football-data.org every 15 minutes — no manual entry</li>
         <li>All disputes resolved by the admin (Mike). His word is final 👑</li>
       </ul>
     </div>
@@ -966,9 +991,31 @@ document.getElementById('tabs').addEventListener('click', e => {
   renderers[tab]();
 });
 
+// ═══════════════════════════════════════════════
+// DATA LOADING — synced JSON written by GitHub Actions
+// ═══════════════════════════════════════════════
+
+async function loadData() {
+  try {
+    const bust = `?t=${Date.now()}`;
+    const [r, e] = await Promise.all([
+      fetch('data/results.json' + bust).then(x => x.json()),
+      fetch('data/extras.json' + bust).then(x => x.json()).catch(() => ({ redCards: {} })),
+    ]);
+    RESULTS = r;
+    EXTRAS = e;
+  } catch (err) {
+    console.warn('Could not load live data (serve over HTTP, not file://):', err);
+  }
+  applyResults();
+  renderers[activeTab]();
+}
+
 // Initial render
 renderStandings();
 renderDraw();
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
