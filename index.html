@@ -553,16 +553,11 @@ function renderAwards(rows, teamStats) {
       + (bath.length > 1 ? '<div class="award-detail">knocked out together — tied</div>' : '')
     : '<div class="award-detail">Everyone still alive</div>';
 
-  // Upset King — biggest single-match win over a higher-ranked team
-  let upsets = [], upDiff = 0;
-  for (const m of RESULTS.matches.filter(m => m.status === 'FINISHED' && m.home && m.away)) {
-    const w = matchWinner(m);
-    if (!w) continue;
-    const loser = w === m.home ? m.away : m.home;
-    const diff = (teamById[w] || {}).rank - (teamById[loser] || {}).rank;
-    if (diff > upDiff) { upDiff = diff; upsets = [{ team: teamById[w], owner: ownerOf(w), stat: `beat ${tname(loser)} (+${diff} ranks)` }]; }
-    else if (diff === upDiff && diff > 0 && !upsets.some(u => u.team.id === w)) upsets.push({ team: teamById[w], owner: ownerOf(w), stat: `beat ${tname(loser)} (+${diff} ranks)` });
-  }
+  // Chaos Master — most total goals in their teams' matches (scored + conceded)
+  const chaosBody = personBest(t => {
+    const s = teamStats[t.id];
+    return s.gf + s.ga;
+  }, 'goals');
 
   // Golden Boot — most goals scored by a player's six teams combined
   const gbTop = Math.max(0, ...rows.map(p => p.gf));
@@ -583,7 +578,7 @@ function renderAwards(rows, teamStats) {
       ${card('🥇', 'Golden Boot', 'Most goals scored by your six teams combined', gbBody)}
       ${card('🪵', 'Wooden Spoon', 'Worst group-stage goal difference', holders(woodenSpoon))}
       ${card('🛁', 'Early Bath', 'First to have all six teams knocked out', bathBody)}
-      ${card('👑', 'Upset King', 'Biggest upset by ranking gap in one match', holders(upsets))}
+      ${card('🌪️', 'Chaos Master', 'Most total goals in their teams\' matches — scored and conceded combined', chaosBody)}
       ${card('🎭', 'Drama Queen', 'Most red cards across all their teams', holders(dramaQueen))}
       ${card('⚽', 'Penalty Hero', 'Most penalties scored in normal play (shoot-outs don\'t count)', penBody)}
     </div>`;
