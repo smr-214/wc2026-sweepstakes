@@ -541,11 +541,13 @@ function renderAwards(rows, teamStats) {
     else if (diff === upDiff && diff > 0 && !upsets.some(u => u.team.id === w)) upsets.push({ team: teamById[w], owner: ownerOf(w), stat: `beat ${tname(loser)} (+${diff} ranks)` });
   }
 
-  // Golden Boot — top scorer's team, set manually in data/extras.json as
-  // "goldenBoot": { "teamId": "...", "scorer": "...", "goals": n }
-  const gb = EXTRAS.goldenBoot && EXTRAS.goldenBoot.teamId && teamById[EXTRAS.goldenBoot.teamId]
-    ? [{ team: teamById[EXTRAS.goldenBoot.teamId], owner: ownerOf(EXTRAS.goldenBoot.teamId), stat: `${EXTRAS.goldenBoot.scorer} ${EXTRAS.goldenBoot.goals}⚽` }]
-    : [];
+  // Golden Boot — most goals scored by a player's six teams combined
+  const gbTop = Math.max(0, ...rows.map(p => p.gf));
+  const gb = gbTop >= 1 ? rows.filter(p => p.gf === gbTop) : [];
+  const gbBody = gb.length
+    ? gb.map(p => `<div class="award-holder">${pflag(p)} ${esc(p.name)}</div>`).join('')
+      + `<div class="award-detail">${gbTop} goal${gbTop === 1 ? '' : 's'}${gb.length > 1 ? ' each — currently tied' : ''}</div>`
+    : '<div class="award-detail">TBD</div>';
 
   const card = (emoji, name, desc, body) => `
     <div class="award-card"><div class="award-emoji">${emoji}</div>
@@ -553,9 +555,9 @@ function renderAwards(rows, teamStats) {
 
   return `
     <div class="section-title" style="margin-bottom:6px">🎖️ Special Prizes</div>
-    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:14px">Live holders — winners decided after the Final. All six teams count here, even the ones outside your top scorers.</p>
+    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:14px">Live holders — winners decided after the Final. Ties share the prize.</p>
     <div class="award-grid" style="margin-bottom:22px">
-      ${card('🥇', 'Golden Boot', 'Owns the tournament\'s top goal scorer', holders(gb))}
+      ${card('🥇', 'Golden Boot', 'Most goals scored by your six teams combined', gbBody)}
       ${card('🪵', 'Wooden Spoon', 'Worst group-stage goal difference', holders(woodenSpoon))}
       ${card('🎯', 'Goal Machine', 'Most goals scored in the group stage', holders(goalMachine))}
       ${card('👑', 'Upset King', 'Biggest upset by ranking gap in one match', holders(upsets))}
