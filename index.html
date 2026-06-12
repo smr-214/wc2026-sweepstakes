@@ -438,18 +438,17 @@ function computeTeamStats() {
   const s = {};
   TEAMS.forEach(t => {
     s[t.id] = { pts: 0, gf: 0, ga: 0, played: 0, eliminated: false, elimDate: null,
-                gPlayed: 0, gGF: 0, gGA: 0, pens: 0 };
+                gPlayed: 0, gGF: 0, gGA: 0 };
   });
   const finished = RESULTS.matches.filter(m => m.status === 'FINISHED' && m.home && m.away);
 
   for (const m of finished) {
     const w = matchWinner(m);
-    for (const [me, them, gf, ga, myPens] of [[m.home, m.away, m.hs, m.as, m.penHome], [m.away, m.home, m.as, m.hs, m.penAway]]) {
+    for (const [me, them, gf, ga] of [[m.home, m.away, m.hs, m.as], [m.away, m.home, m.as, m.hs]]) {
       const st = s[me];
       if (!st) continue;
       st.played++; st.gf += gf; st.ga += ga;
       st.pts += gf * PTS.goal;
-      if (m.duration === 'PENALTY_SHOOTOUT') st.pens += myPens || 0;
       if (m.stage === 'group') {
         st.gPlayed++; st.gGF += gf; st.gGA += ga;
         if (w === me) st.pts += PTS.groupWin;
@@ -526,9 +525,33 @@ function renderAwards(rows, teamStats) {
     : '<div class="award-detail">TBD</div>';
 
   const woodenSpoon = bestTeams((s) => s.gPlayed > 0 ? s.gGF - s.gGA : null, { lowest: true, stat: v => `GD ${v > 0 ? '+' : ''}${v}` });
-  const goalMachine = bestTeams((s) => s.gGF, { min: 1, stat: v => `${v} goals` });
   const dramaQueen  = bestTeams((s, t) => (EXTRAS.redCards || {})[t.id] || 0, { min: 1, stat: v => `${v} 🟥` });
-  const penaltyHero = bestTeams((s) => s.pens, { min: 1, stat: v => `${v} pens` });
+
+  // person-level helper: combined value across a player's six teams
+  const personBest = (perTeam, unit) => {
+    const vals = rows.map(p => ({ p, v: p.teams.reduce((s, t) => s + perTeam(t), 0) }));
+    const top = Math.max(0, ...vals.map(x => x.v));
+    const list = top >= 1 ? vals.filter(x => x.v === top) : [];
+    return list.length
+      ? list.map(x => `<div class="award-holder">${pflag(x.p)} ${esc(x.p.name)}</div>`).join('')
+        + `<div class="award-detail">${top} ${top === 1 ? unit.replace(/s$/, '') : unit}${list.length > 1 ? ' each — currently tied' : ''}</div>`
+      : '<div class="award-detail">TBD</div>';
+  };
+  const penBody = personBest(t => (EXTRAS.penGoals || {})[t.id] || 0, 'penalties');
+
+  // Early Bath — first player(s) with all six teams eliminated
+  let bath = [], bathWhen = null;
+  for (const p of rows) {
+    if (p.teams.every(t => teamStats[t.id].eliminated)) {
+      const when = p.teams.map(t => teamStats[t.id].elimDate || '').sort().pop();
+      if (!bathWhen || when < bathWhen) { bathWhen = when; bath = [p]; }
+      else if (when === bathWhen) bath.push(p);
+    }
+  }
+  const bathBody = bath.length
+    ? bath.map(p => `<div class="award-holder">${pflag(p)} ${esc(p.name)}</div>`).join('')
+      + (bath.length > 1 ? '<div class="award-detail">knocked out together — tied</div>' : '')
+    : '<div class="award-detail">Everyone still alive</div>';
 
   // Upset King — biggest single-match win over a higher-ranked team
   let upsets = [], upDiff = 0;
@@ -559,10 +582,10 @@ function renderAwards(rows, teamStats) {
     <div class="award-grid" style="margin-bottom:22px">
       ${card('🥇', 'Golden Boot', 'Most goals scored by your six teams combined', gbBody)}
       ${card('🪵', 'Wooden Spoon', 'Worst group-stage goal difference', holders(woodenSpoon))}
-      ${card('🎯', 'Goal Machine', 'Most goals scored in the group stage', holders(goalMachine))}
+      ${card('🛁', 'Early Bath', 'First to have all six teams knocked out', bathBody)}
       ${card('👑', 'Upset King', 'Biggest upset by ranking gap in one match', holders(upsets))}
       ${card('🎭', 'Drama Queen', 'Most red cards across all their teams', holders(dramaQueen))}
-      ${card('⚽', 'Penalty Hero', 'Most shoot-out penalties scored', holders(penaltyHero))}
+      ${card('⚽', 'Penalty Hero', 'Most penalties scored in normal play (shoot-outs don\'t count)', penBody)}
     </div>`;
 }
 
