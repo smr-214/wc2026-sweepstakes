@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-13T01:33:40.616Z",
+  "updated": "2026-06-13T05:45:28.844Z",
   "source": "football-data.org",
   "matches": [
     {
@@ -48,11 +48,11 @@
       "stage": "group",
       "group": "D",
       "utcDate": "2026-06-13T01:00:00Z",
-      "status": "TIMED",
+      "status": "FINISHED",
       "home": "usa",
       "away": "paraguay",
-      "hs": null,
-      "as": null,
+      "hs": 4,
+      "as": 1,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
