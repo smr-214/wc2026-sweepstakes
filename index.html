@@ -538,8 +538,8 @@ function renderAwards(rows, teamStats) {
   const topCard = Math.max(0, ...cardAgg.map(x => x.v));
   const dramaList = topCard > 0 ? cardAgg.filter(x => x.v === topCard) : [];
   const dramaBody = dramaList.length
-    ? dramaList.map(x => `<div class="award-holder">${pflag(x.p)} ${esc(x.p.name)}</div>`).join('')
-      + `<div class="award-detail">${dramaList[0].v} pts · ${dramaList[0].y} 🟨 · ${dramaList[0].r} 🟥${dramaList.length > 1 ? ' each — currently tied' : ''}</div>`
+    ? dramaList.map(x => `<div class="award-holder">${pflag(x.p)} ${esc(x.p.name)} <span style="color:var(--muted);font-weight:600;font-size:0.78rem">${x.y} 🟨 ${x.r} 🟥</span></div>`).join('')
+      + `<div class="award-detail">${dramaList[0].v} points${dramaList.length > 1 ? ' · currently tied' : ''}</div>`
     : '<div class="award-detail">TBD</div>';
 
   // person-level helper: combined value across a player's six teams
@@ -594,7 +594,7 @@ function renderAwards(rows, teamStats) {
       ${card('🪵', 'Wooden Spoon', 'Worst group-stage goal difference', holders(woodenSpoon))}
       ${card('🛁', 'Early Bath', 'First to have all six teams knocked out', bathBody)}
       ${card('🌪️', 'Chaos Master', 'Most total goals in their teams\' matches — scored and conceded combined', chaosBody)}
-      ${card('🎭', 'Drama Queen', 'Most card points across their teams — red card = 2, yellow = 1', dramaBody)}
+      ${card('🎭', 'Drama Queen', 'Most card points across their teams — red card = 2 points, yellow card = 1 point', dramaBody)}
       ${card('⚽', 'Penalty Hero', 'Most penalties scored in normal play (shoot-outs don\'t count)', penBody)}
     </div>`;
 }
