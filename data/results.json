@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-15T07:01:32.190Z",
+  "updated": "2026-06-15T18:13:23.146Z",
   "source": "espn",
   "matches": [
     {
@@ -174,15 +174,15 @@
       "stage": "group",
       "group": "H",
       "utcDate": "2026-06-15T16:00:00Z",
-      "status": "TIMED",
+      "status": "FINISHED",
       "home": "spain",
       "away": "capeverde",
-      "hs": null,
-      "as": null,
+      "hs": 0,
+      "as": 0,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
-      "winner": null
+      "winner": "DRAW"
     },
     {
       "stage": "group",
