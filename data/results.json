@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-17T19:33:25.927Z",
+  "updated": "2026-06-17T21:34:36.510Z",
   "source": "espn",
   "matches": [
     {
@@ -300,11 +300,11 @@
       "stage": "group",
       "group": "L",
       "utcDate": "2026-06-17T20:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "england",
       "away": "croatia",
-      "hs": null,
-      "as": null,
+      "hs": 3,
+      "as": 2,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
