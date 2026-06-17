@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-17T21:34:36.510Z",
+  "updated": "2026-06-17T23:07:53.972Z",
   "source": "espn",
   "matches": [
     {
@@ -300,25 +300,25 @@
       "stage": "group",
       "group": "L",
       "utcDate": "2026-06-17T20:00:00Z",
-      "status": "IN_PLAY",
+      "status": "FINISHED",
       "home": "england",
       "away": "croatia",
-      "hs": 3,
+      "hs": 4,
       "as": 2,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
-      "winner": null
+      "winner": "HOME_TEAM"
     },
     {
       "stage": "group",
       "group": "L",
       "utcDate": "2026-06-17T23:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "ghana",
       "away": "panama",
-      "hs": null,
-      "as": null,
+      "hs": 0,
+      "as": 0,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
