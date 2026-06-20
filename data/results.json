@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-20T17:06:00.995Z",
+  "updated": "2026-06-20T18:44:59.217Z",
   "source": "espn",
   "matches": [
     {
@@ -457,8 +457,8 @@
       "status": "IN_PLAY",
       "home": "netherlands",
       "away": "sweden",
-      "hs": 0,
-      "as": 0,
+      "hs": 4,
+      "as": 1,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
