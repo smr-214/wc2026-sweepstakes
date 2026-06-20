@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-20T18:44:59.217Z",
+  "updated": "2026-06-20T20:08:21.033Z",
   "source": "espn",
   "matches": [
     {
@@ -454,25 +454,25 @@
       "stage": "group",
       "group": "F",
       "utcDate": "2026-06-20T17:00:00Z",
-      "status": "IN_PLAY",
+      "status": "FINISHED",
       "home": "netherlands",
       "away": "sweden",
-      "hs": 4,
+      "hs": 5,
       "as": 1,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
-      "winner": null
+      "winner": "HOME_TEAM"
     },
     {
       "stage": "group",
       "group": "E",
       "utcDate": "2026-06-20T20:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "germany",
       "away": "ivorycoast",
-      "hs": null,
-      "as": null,
+      "hs": 0,
+      "as": 0,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
