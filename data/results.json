@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-21T21:49:16.061Z",
+  "updated": "2026-06-21T22:55:32.308Z",
   "source": "espn",
   "matches": [
     {
@@ -538,11 +538,11 @@
       "stage": "group",
       "group": "H",
       "utcDate": "2026-06-21T22:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "uruguay",
       "away": "capeverde",
-      "hs": null,
-      "as": null,
+      "hs": 2,
+      "as": 1,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
