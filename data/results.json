@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-23T17:01:31.929Z",
+  "updated": "2026-06-23T19:15:35.167Z",
   "source": "espn",
   "matches": [
     {
@@ -622,15 +622,15 @@
       "stage": "group",
       "group": "K",
       "utcDate": "2026-06-23T17:00:00Z",
-      "status": "IN_PLAY",
+      "status": "FINISHED",
       "home": "portugal",
       "away": "uzbekistan",
-      "hs": 0,
+      "hs": 5,
       "as": 0,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
-      "winner": null
+      "winner": "HOME_TEAM"
     },
     {
       "stage": "group",
