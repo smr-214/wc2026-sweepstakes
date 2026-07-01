@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-01T04:47:48.828Z",
+  "updated": "2026-07-01T16:34:29.557Z",
   "source": "espn",
   "matches": [
     {
@@ -1112,11 +1112,11 @@
       "stage": "r32",
       "group": null,
       "utcDate": "2026-07-01T16:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "england",
       "away": "drcongo",
-      "hs": null,
-      "as": null,
+      "hs": 0,
+      "as": 1,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
