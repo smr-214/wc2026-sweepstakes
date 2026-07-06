@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-05T23:46:29.154Z",
+  "updated": "2026-07-06T01:29:33.942Z",
   "source": "espn",
   "matches": [
     {
@@ -1280,11 +1280,11 @@
       "stage": "r16",
       "group": null,
       "utcDate": "2026-07-06T01:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "mexico",
       "away": "england",
-      "hs": null,
-      "as": null,
+      "hs": 0,
+      "as": 0,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
