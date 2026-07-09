@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-09T20:13:18.346Z",
+  "updated": "2026-07-09T21:49:37.414Z",
   "source": "espn",
   "matches": [
     {
@@ -1353,7 +1353,7 @@
       "status": "IN_PLAY",
       "home": "france",
       "away": "morocco",
-      "hs": 0,
+      "hs": 2,
       "as": 0,
       "duration": "REGULAR",
       "penHome": null,
