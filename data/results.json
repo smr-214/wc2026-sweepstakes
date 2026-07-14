@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-12T04:08:27.788Z",
+  "updated": "2026-07-14T19:45:50.815Z",
   "source": "espn",
   "matches": [
     {
@@ -1406,11 +1406,11 @@
       "stage": "sf",
       "group": null,
       "utcDate": "2026-07-14T19:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "home": "france",
       "away": "spain",
-      "hs": null,
-      "as": null,
+      "hs": 0,
+      "as": 1,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
