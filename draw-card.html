@@ -165,7 +165,7 @@ body {
     <h1>World Cup 2026 Sweepstakes</h1>
     <p class="header-sub">The Official Draw · Rossler Group</p>
     <div class="header-info">
-      <span class="info-pill">8 Players</span>
+      <span class="info-pill">7 Players</span>
       <span class="info-pill">48 Teams</span>
       <span class="info-pill">6 Teams Each</span>
     </div>
@@ -306,7 +306,8 @@ function computeDraw() {
 const DRAW = computeDraw();
 
 const grid = document.getElementById('grid');
-DRAW.forEach(p => {
+// Host players are retained in the draw data but not displayed on the card.
+DRAW.filter(p => !p.host).forEach(p => {
   const avg = Math.round(p.teams.reduce((s, t) => s + t.rank, 0) / p.teams.length);
   const rows = [...p.teams].sort((a, b) => a.rank - b.rank).map(t => `
     <div class="team-item">
@@ -321,8 +322,8 @@ DRAW.forEach(p => {
       <div class="player-header">
         <div class="p-avatar">${p.emoji}</div>
         <div>
-          <div class="p-name">${p.name}${p.host ? ' 🎩' : ''}</div>
-          <div class="p-avg">${p.host ? 'Host · not competing' : 'Avg rank #' + avg}</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-avg">Avg rank #${avg}</div>
         </div>
       </div>
       ${rows}
