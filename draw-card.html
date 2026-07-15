@@ -200,7 +200,7 @@ const PLAYERS = [
   { id: 'chrism', name: 'Chris M', emoji: '🔥' },
   { id: 'yana',   name: 'Yana',    emoji: '✨' },
   { id: 'bell',   name: 'Bell',    emoji: '🔔' },
-  { id: 'stef',   name: 'Stef',    emoji: '🌊' },
+  { id: 'stef',   name: 'Stef',    emoji: '🌊', host: true }, // organiser — hosts, not competing for prizes
 ];
 
 const TEAMS = [
@@ -321,8 +321,8 @@ DRAW.forEach(p => {
       <div class="player-header">
         <div class="p-avatar">${p.emoji}</div>
         <div>
-          <div class="p-name">${p.name}</div>
-          <div class="p-avg">Avg rank #${avg}</div>
+          <div class="p-name">${p.name}${p.host ? ' 🎩' : ''}</div>
+          <div class="p-avg">${p.host ? 'Host · not competing' : 'Avg rank #' + avg}</div>
         </div>
       </div>
       ${rows}

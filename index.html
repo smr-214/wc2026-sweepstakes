@@ -136,7 +136,21 @@ table.lb { width: 100%; border-collapse: collapse; }
 .lb tr:last-child td { border-bottom: none; }
 .pos { font-weight: 800; font-size: 1.05rem; width: 36px; }
 .pos-1 { color: var(--gold); } .pos-2 { color: var(--silver); } .pos-3 { color: var(--bronze); }
+.pos-host { color: var(--muted); font-size: 0.95rem; }
 .player-name { font-weight: 700; font-size: 0.95rem; }
+.host-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  vertical-align: 1px;
+}
 .team-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .chip {
   display: inline-flex;
@@ -298,7 +312,11 @@ const PLAYERS = [
   { id: 'chrism', name: 'Chris M', emoji: '🔥' },
   { id: 'yana',   name: 'Yana',    emoji: '✨' },
   { id: 'bell',   name: 'Bell',    emoji: '🔔' },
-  { id: 'stef',   name: 'Stef',    emoji: '🌊' },
+  // Stef (Stefan Rossler) organises the sweepstake. To avoid any conflict of
+  // interest he hosts but does not compete for prizes: his teams and true
+  // standing stay on the board, but every prize cascades to the next eligible
+  // player. See `host` handling in renderLeaderboard / renderAwards.
+  { id: 'stef',   name: 'Stef',    emoji: '🌊', host: true },
 ];
 
 const TEAMS = [
@@ -505,10 +523,16 @@ const fmtDT = d => `${fmtD(d)}, ${new Date(d).toLocaleTimeString(undefined, { ho
 
 function renderAwards(rows, teamStats) {
   const ownerOf = id => DRAW.players.find(p => p.teams.some(t => t.id === id));
+  // The host is not in prize contention: exclude host players from every
+  // player-level award, and host-owned teams from every team-level award, so
+  // prizes cascade to the next eligible holder.
+  const contenders = rows.filter(p => !p.host);
+  const hostOwns = id => { const o = ownerOf(id); return !!(o && o.host); };
 
   // best team(s) by metric — ties share the prize; lowest=true for Wooden Spoon
   const bestTeams = (metric, { min = 1, lowest = false, stat }) => {
     const scored = TEAMS
+      .filter(t => !hostOwns(t.id))
       .map(t => ({ t, v: metric(teamStats[t.id], t) }))
       .filter(x => x.v !== null);
     if (!scored.length) return [];
@@ -530,7 +554,7 @@ function renderAwards(rows, teamStats) {
   // A second-yellow sending-off is stored as one red (not red+yellow) by the
   // tally script, so there's no double counting here.
   const reds = EXTRAS.redCards || {}, yellows = EXTRAS.yellowCards || {};
-  const cardAgg = rows.map(p => {
+  const cardAgg = contenders.map(p => {
     const r = p.teams.reduce((s, t) => s + (reds[t.id] || 0), 0);
     const y = p.teams.reduce((s, t) => s + (yellows[t.id] || 0), 0);
     return { p, v: r * 2 + y, r, y };
@@ -544,7 +568,7 @@ function renderAwards(rows, teamStats) {
 
   // person-level helper: combined value across a player's six teams
   const personBest = (perTeam, unit) => {
-    const vals = rows.map(p => ({ p, v: p.teams.reduce((s, t) => s + perTeam(t), 0) }));
+    const vals = contenders.map(p => ({ p, v: p.teams.reduce((s, t) => s + perTeam(t), 0) }));
     const top = Math.max(0, ...vals.map(x => x.v));
     const list = top >= 1 ? vals.filter(x => x.v === top) : [];
     return list.length
@@ -556,7 +580,7 @@ function renderAwards(rows, teamStats) {
 
   // Early Bath — first player(s) with all six teams eliminated
   let bath = [], bathWhen = null;
-  for (const p of rows) {
+  for (const p of contenders) {
     if (p.teams.every(t => teamStats[t.id].eliminated)) {
       const when = p.teams.map(t => teamStats[t.id].elimDate || '').sort().pop();
       if (!bathWhen || when < bathWhen) { bathWhen = when; bath = [p]; }
@@ -575,8 +599,8 @@ function renderAwards(rows, teamStats) {
   }, 'goals');
 
   // Golden Boot — most goals scored by a player's six teams combined
-  const gbTop = Math.max(0, ...rows.map(p => p.gf));
-  const gb = gbTop >= 1 ? rows.filter(p => p.gf === gbTop) : [];
+  const gbTop = Math.max(0, ...contenders.map(p => p.gf));
+  const gb = gbTop >= 1 ? contenders.filter(p => p.gf === gbTop) : [];
   const gbBody = gb.length
     ? gb.map(p => `<div class="award-holder">${pflag(p)} ${esc(p.name)}</div>`).join('')
       + `<div class="award-detail">${gbTop} goal${gbTop === 1 ? '' : 's'}${gb.length > 1 ? ' each — currently tied' : ''}</div>`
@@ -604,21 +628,31 @@ function renderLeaderboard(rows, teamStats) {
   $('pane-leaderboard').innerHTML = renderAwards(rows, teamStats) + `
     <div class="card">
       <div class="section-title">Standings — top 3 win prizes</div>
+      <p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px">🎩 Stef organises the sweepstake and isn't competing for prizes — his teams and true standing still show, but prizes cascade to the next eligible player.</p>
       ${anyResults ? '' : '<p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px">No results yet — everyone starts level. Standings update automatically after each match.</p>'}
       <button class="lb-toggle" onclick="toggleLb()">${LB_DETAILED ? 'Hide details' : 'Press for details'}</button>
       <table class="lb">
         <thead><tr><th>#</th><th>Player</th><th style="text-align:right">GD</th><th style="text-align:right">GF</th><th style="text-align:right">Pts</th></tr></thead>
         <tbody>
-          ${rows.map((p, i) => {
-            // competition ranking: a rank is shared only when points, goal
-            // difference AND goals for are all identical (1, 1, 3, ...)
-            const rank = i > 0 && p.total === rows[i - 1].total && p.gd === rows[i - 1].gd && p.gf === rows[i - 1].gf ? rows[i - 1]._rank : i + 1;
-            p._rank = rank;
+          ${(() => {
+            // Prize positions are decided among eligible (non-host) players only,
+            // so the host's presence never displaces a real prize. Ties share a
+            // rank when points, goal difference AND goals for are all identical.
+            const eligible = rows.filter(p => !p.host);
+            eligible.forEach((p, i) => {
+              p._rank = i > 0 && p.total === eligible[i - 1].total && p.gd === eligible[i - 1].gd && p.gf === eligible[i - 1].gf ? eligible[i - 1]._rank : i + 1;
+            });
+            return '';
+          })()}
+          ${rows.map((p) => {
+            // Rows stay sorted by true points so the host shows at their real
+            // standing; only the medal/number reflects prize contention.
+            const rank = p._rank;
             return `
             <tr>
-              <td class="pos pos-${rank}">${rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] : rank}</td>
+              <td class="pos ${p.host ? 'pos-host' : 'pos-' + rank}">${p.host ? '🎩' : (rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] : rank)}</td>
               <td>
-                <span class="player-name">${pflag(p)} ${esc(p.name)}</span>
+                <span class="player-name">${pflag(p)} ${esc(p.name)}</span>${p.host ? '<span class="host-badge">Host · not competing for prizes</span>' : ''}
                 ${LB_DETAILED ? `
                 <div class="team-chips">
                   ${p.teams.map(t => `
