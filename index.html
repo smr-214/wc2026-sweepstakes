@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>⚽ WC2026 Sweepstakes — Rossler Group</title>
 <meta property="og:title" content="WC2026 Sweepstakes 🏆">
-<meta property="og:description" content="Rossler Group · 7 players · live auto-updating leaderboard">
+<meta property="og:description" content="Rossler Group · 8 players · live auto-updating leaderboard">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0d3320">
 <meta name="robots" content="noindex">
@@ -268,7 +268,7 @@ table.lb { width: 100%; border-collapse: collapse; }
 <div class="header">
   <span class="header-trophy">🏆</span>
   <h1>WC2026 Sweepstakes</h1>
-  <p class="header-sub">Rossler Group · 7 Players · One Champion</p>
+  <p class="header-sub">Rossler Group · 8 Players · One Champion</p>
   <p class="updated-line" id="updatedLine">loading…</p>
 </div>
 
@@ -298,11 +298,7 @@ const PLAYERS = [
   { id: 'chrism', name: 'Chris M', emoji: '🔥' },
   { id: 'yana',   name: 'Yana',    emoji: '✨' },
   { id: 'bell',   name: 'Bell',    emoji: '🔔' },
-  // Stef (Stefan Rossler) organises the sweepstake. To avoid any conflict of
-  // interest he hosts but does not compete for prizes: his teams and true
-  // standing stay on the board, but every prize cascades to the next eligible
-  // player. See `host` handling in renderLeaderboard / renderAwards.
-  { id: 'stef',   name: 'Stef',    emoji: '🌊', host: true },
+  { id: 'stef',   name: 'Stef',    emoji: '🌊' },
 ];
 
 const TEAMS = [
@@ -509,16 +505,10 @@ const fmtDT = d => `${fmtD(d)}, ${new Date(d).toLocaleTimeString(undefined, { ho
 
 function renderAwards(rows, teamStats) {
   const ownerOf = id => DRAW.players.find(p => p.teams.some(t => t.id === id));
-  // The host is not in prize contention: exclude host players from every
-  // player-level award, and host-owned teams from every team-level award, so
-  // prizes cascade to the next eligible holder.
-  const contenders = rows.filter(p => !p.host);
-  const hostOwns = id => { const o = ownerOf(id); return !!(o && o.host); };
 
   // best team(s) by metric — ties share the prize; lowest=true for Wooden Spoon
   const bestTeams = (metric, { min = 1, lowest = false, stat }) => {
     const scored = TEAMS
-      .filter(t => !hostOwns(t.id))
       .map(t => ({ t, v: metric(teamStats[t.id], t) }))
       .filter(x => x.v !== null);
     if (!scored.length) return [];
@@ -540,7 +530,7 @@ function renderAwards(rows, teamStats) {
   // A second-yellow sending-off is stored as one red (not red+yellow) by the
   // tally script, so there's no double counting here.
   const reds = EXTRAS.redCards || {}, yellows = EXTRAS.yellowCards || {};
-  const cardAgg = contenders.map(p => {
+  const cardAgg = rows.map(p => {
     const r = p.teams.reduce((s, t) => s + (reds[t.id] || 0), 0);
     const y = p.teams.reduce((s, t) => s + (yellows[t.id] || 0), 0);
     return { p, v: r * 2 + y, r, y };
@@ -554,7 +544,7 @@ function renderAwards(rows, teamStats) {
 
   // person-level helper: combined value across a player's six teams
   const personBest = (perTeam, unit) => {
-    const vals = contenders.map(p => ({ p, v: p.teams.reduce((s, t) => s + perTeam(t), 0) }));
+    const vals = rows.map(p => ({ p, v: p.teams.reduce((s, t) => s + perTeam(t), 0) }));
     const top = Math.max(0, ...vals.map(x => x.v));
     const list = top >= 1 ? vals.filter(x => x.v === top) : [];
     return list.length
@@ -566,7 +556,7 @@ function renderAwards(rows, teamStats) {
 
   // Early Bath — first player(s) with all six teams eliminated
   let bath = [], bathWhen = null;
-  for (const p of contenders) {
+  for (const p of rows) {
     if (p.teams.every(t => teamStats[t.id].eliminated)) {
       const when = p.teams.map(t => teamStats[t.id].elimDate || '').sort().pop();
       if (!bathWhen || when < bathWhen) { bathWhen = when; bath = [p]; }
@@ -585,8 +575,8 @@ function renderAwards(rows, teamStats) {
   }, 'goals');
 
   // Golden Boot — most goals scored by a player's six teams combined
-  const gbTop = Math.max(0, ...contenders.map(p => p.gf));
-  const gb = gbTop >= 1 ? contenders.filter(p => p.gf === gbTop) : [];
+  const gbTop = Math.max(0, ...rows.map(p => p.gf));
+  const gb = gbTop >= 1 ? rows.filter(p => p.gf === gbTop) : [];
   const gbBody = gb.length
     ? gb.map(p => `<div class="award-holder">${pflag(p)} ${esc(p.name)}</div>`).join('')
       + `<div class="award-detail">${gbTop} goal${gbTop === 1 ? '' : 's'}${gb.length > 1 ? ' each — currently tied' : ''}</div>`
@@ -614,18 +604,15 @@ function renderLeaderboard(rows, teamStats) {
   $('pane-leaderboard').innerHTML = renderAwards(rows, teamStats) + `
     <div class="card">
       <div class="section-title">Standings — top 3 win prizes</div>
-      <p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px">The organiser hosts the sweepstake and doesn't compete, so isn't listed here. The full draw is retained in the records and stays reproducible from the seed.</p>
       ${anyResults ? '' : '<p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px">No results yet — everyone starts level. Standings update automatically after each match.</p>'}
       <button class="lb-toggle" onclick="toggleLb()">${LB_DETAILED ? 'Hide details' : 'Press for details'}</button>
       <table class="lb">
         <thead><tr><th>#</th><th>Player</th><th style="text-align:right">GD</th><th style="text-align:right">GF</th><th style="text-align:right">Pts</th></tr></thead>
         <tbody>
-          ${rows.filter(p => !p.host).map((p, i, shown) => {
-            // Host players are retained in the data (so the draw stays
-            // reproducible) but not shown on the site. Ranking runs over the
-            // shown competitors; a rank is shared only when points, goal
-            // difference AND goals for are all identical.
-            const rank = i > 0 && p.total === shown[i - 1].total && p.gd === shown[i - 1].gd && p.gf === shown[i - 1].gf ? shown[i - 1]._rank : i + 1;
+          ${rows.map((p, i) => {
+            // competition ranking: a rank is shared only when points, goal
+            // difference AND goals for are all identical (1, 1, 3, ...)
+            const rank = i > 0 && p.total === rows[i - 1].total && p.gd === rows[i - 1].gd && p.gf === rows[i - 1].gf ? rows[i - 1]._rank : i + 1;
             p._rank = rank;
             return `
             <tr>
@@ -653,11 +640,9 @@ function renderLeaderboard(rows, teamStats) {
 }
 
 function renderDraw() {
-  // Host players are kept in the underlying draw (so the seed still
-  // reproduces the full result) but are not displayed on the site.
   $('pane-draw').innerHTML = `
     <div class="draw-grid">
-      ${DRAW.players.filter(p => !p.host).map(p => `
+      ${DRAW.players.map(p => `
         <div class="draw-card">
           <h3>${pflag(p)} ${esc(p.name)}</h3>
           ${p.teams.slice().sort((a, b) => a.tier - b.tier).map(t => `
@@ -683,9 +668,7 @@ function renderMatches() {
     return;
   }
   const owners = {};
-  // Host-owned teams are left unattributed on the site; the host is retained
-  // in the draw data but not shown.
-  DRAW.players.filter(p => !p.host).forEach(p => p.teams.forEach(t => (owners[t.id] = owners[t.id] || []).push(p.name)));
+  DRAW.players.forEach(p => p.teams.forEach(t => (owners[t.id] = owners[t.id] || []).push(p.name)));
   const ownerTag = id => owners[id] ? `<div class="owner-tag">${owners[id].map(esc).join(' · ')}</div>` : '';
 
   const fmtDate = iso => iso ? fmtDT(iso) : '';
@@ -766,7 +749,7 @@ function renderRules() {
     <div class="card rules">
       <h3 style="margin-top:0">🎲 How it works</h3>
       <ul>
-        <li>48 teams · 6 teams each · one random team per tier.</li>
+        <li>8 players · 48 teams · 6 teams each.</li>
         <li>The 48 teams are split into <strong>6 tiers of 8</strong> by FIFA world ranking (Tier 1 = the favourites, Tier 6 = the underdogs).</li>
         <li>Every player gets <strong>one random team from each tier</strong> — so everyone's hand is equally strong on paper.</li>
         <li>The draw uses a fixed random seed so it's reproducible and verifiable. No swaps or trades.</li>
