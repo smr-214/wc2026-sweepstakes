@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-18T21:33:39.224Z",
+  "updated": "2026-07-18T22:32:07.810Z",
   "source": "espn",
   "matches": [
     {
@@ -1437,8 +1437,8 @@
       "status": "IN_PLAY",
       "home": "france",
       "away": "england",
-      "hs": 0,
-      "as": 2,
+      "hs": 3,
+      "as": 4,
       "duration": "REGULAR",
       "penHome": null,
       "penAway": null,
